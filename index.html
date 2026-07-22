@@ -1,4 +1,4 @@
-<!<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -25,23 +25,42 @@
         .crypto-list {
             margin-top: 20px;
         }
+        .crypto-box {
+            background: #2a2a2a;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .crypto-box:active {
+            background: #333333;
+        }
         .crypto-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #2a2a2a;
-            padding: 12px 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            padding: 15px;
         }
         .crypto-name {
             font-weight: bold;
             font-size: 16px;
         }
         .crypto-price {
-            color: #00ff88;
             font-weight: bold;
+            font-size: 16px;
         }
+        /* Bosilganda ochiladigan qism */
+        .crypto-details {
+            display: none; /* Boshida yashirin turadi */
+            background: #1e1e1e;
+            padding: 10px 15px;
+            font-size: 14px;
+            text-align: left;
+            border-top: 1px solid #333;
+        }
+        .up { color: #00ff88; } /* Ko'tarilsa yashil */
+        .down { color: #ff4d4d; } /* Tushsa qizil */
     </style>
 </head>
 <body>
@@ -52,51 +71,90 @@
         <p id="user-info">Yuklanmoqda...</p>
     </div>
 
-    <!-- Kripto narxlari ro'yxati -->
     <div class="crypto-list">
-        <h3>📊 Bozor narxlari (USD)</h3>
+        <h3>📊 Bozor narxlari (Bosing 👇)</h3>
         
-        <div class="crypto-item">
-            <span class="crypto-name">💎 TON (Toncoin)</span>
-            <span class="crypto-price" id="ton-price">Yuklanmoqda...</span>
+        <!-- TON -->
+        <div class="crypto-box" onclick="toggleDetails('ton-details')">
+            <div class="crypto-item">
+                <span class="crypto-name">💎 TON</span>
+                <span class="crypto-price" id="ton-price">...</span>
+            </div>
+            <div class="crypto-details" id="ton-details">
+                24 soatlik o'zgarish: <span id="ton-change">...</span>
+            </div>
         </div>
         
-        <div class="crypto-item">
-            <span class="crypto-name">🟧 BTC (Bitcoin)</span>
-            <span class="crypto-price" id="btc-price">Yuklanmoqda...</span>
+        <!-- BTC -->
+        <div class="crypto-box" onclick="toggleDetails('btc-details')">
+            <div class="crypto-item">
+                <span class="crypto-name">🟧 BTC</span>
+                <span class="crypto-price" id="btc-price">...</span>
+            </div>
+            <div class="crypto-details" id="btc-details">
+                24 soatlik o'zgarish: <span id="btc-change">...</span>
+            </div>
         </div>
         
-        <div class="crypto-item">
-            <span class="crypto-name">🔷 ETH (Ethereum)</span>
-            <span class="crypto-price" id="eth-price">Yuklanmoqda...</span>
+        <!-- ETH -->
+        <div class="crypto-box" onclick="toggleDetails('eth-details')">
+            <div class="crypto-item">
+                <span class="crypto-name">🔷 ETH</span>
+                <span class="crypto-price" id="eth-price">...</span>
+            </div>
+            <div class="crypto-details" id="eth-details">
+                24 soatlik o'zgarish: <span id="eth-change">...</span>
+            </div>
         </div>
     </div>
 
     <script>
-        // Telegram foydalanuvchisini aniqlash
+        // Telegram foydalanuvchisi
         const tg = window.Telegram.WebApp;
         tg.expand();
-
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('user-info').innerText = 
-                "Salom, " + tg.initDataUnsafe.user.first_name + "! 👋";
-        } else {
-            document.getElementById('user-info').innerText = "Salom, Mehmon!";
+            document.getElementById('user-info').innerText = "Salom, " + tg.initDataUnsafe.user.first_name + "! 👋";
         }
 
-        // Real vaqtdagi narxlarni olish (API)
+        // Bosilganda ma'lumotni ochib-yopuvchi funksiya
+        function toggleDetails(id) {
+            const el = document.getElementById(id);
+            if (el.style.display === "block") {
+                el.style.display = "none";
+            } else {
+                el.style.display = "block";
+            }
+        }
+
+        // API dan narx va 24s o'zgarishni olish
         async function fetchPrices() {
             try {
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum&vs_currencies=usd');
-                const data = await response.json();
+                // include_24hr_change=true qo'shildi
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
+                const data = await res.json();
 
-                document.getElementById('ton-price').innerText = '$' + data['the-open-network'].usd;
-                document.getElementById('btc-price').innerText = '$' + data['bitcoin'].usd.toLocaleString();
-                document.getElementById('eth-price').innerText = '$' + data['ethereum'].usd.toLocaleString();
-            } catch (error) {
-                document.getElementById('ton-price').innerText = 'Xatolik';
-                document.getElementById('btc-price').innerText = 'Xatolik';
-                document.getElementById('eth-price').innerText = 'Xatolik';
+                updateCryptoUI('ton', data['the-open-network']);
+                updateCryptoUI('btc', data['bitcoin']);
+                updateCryptoUI('eth', data['ethereum']);
+            } catch (err) {
+                console.log("Xato:", err);
+            }
+        }
+
+        function updateCryptoUI(id, coinData) {
+            // Narxni yozish
+            document.getElementById(`${id}-price`).innerText = '$' + coinData.usd.toLocaleString();
+            
+            // O'zgarishni yozish
+            const changeSpan = document.getElementById(`${id}-change`);
+            const changeValue = coinData.usd_24h_change.toFixed(2); // verguldan keyin 2 ta raqam
+            
+            if (changeValue > 0) {
+                changeSpan.innerText = '📈 +' + changeValue + '%';
+                changeSpan.className = 'up';
+            } else {
+                changeSpan.innerText = '📉 ' + changeValue + '%';
+                changeSpan.className = 'down';
             }
         }
 
@@ -104,4 +162,3 @@
     </script>
 </body>
 </html>
-
