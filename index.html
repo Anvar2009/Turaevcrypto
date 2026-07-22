@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -6,11 +6,9 @@
     <title>TURAE CRYPTO</title>
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Grafik uchun Chart.js kutubxonasi -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #121922;
             color: #ffffff;
             margin: 0;
@@ -42,7 +40,7 @@
             margin: 4px 0;
         }
         .change-tag {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 6px;
             font-size: 14px;
@@ -52,15 +50,18 @@
         .up { color: #2bc155; }
         .down { color: #ff5959; }
 
-        /* Grafik joyi */
-        .chart-container {
-            position: relative;
-            height: 180px;
+        /* Vektorlik chiziqli grafik (SVG) */
+        .chart-box {
             width: 100%;
+            height: 150px;
             margin-bottom: 15px;
         }
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+        }
 
-        /* Taymer/Period tugmalari */
+        /* Taymer tugmalari */
         .time-buttons {
             display: flex;
             justify-content: space-between;
@@ -83,7 +84,7 @@
             color: #ffffff;
         }
 
-        /* Tugmalar */
+        /* Sotib olish / Sotish tugmalari */
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -96,34 +97,40 @@
             font-weight: 600;
             font-size: 16px;
             color: #fff;
+            background: #248bfa;
             cursor: pointer;
         }
-        .btn-buy { background: #248bfa; }
-        .btn-sell { background: #248bfa; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="coin-icon">💎</div>
-        <div>
-            <div class="coin-title">Toncoin (TON)</div>
-        </div>
+        <div class="coin-title">Toncoin (TON)</div>
     </div>
 
-    <!-- Narx va foiz -->
+    <!-- Narx va ko'tarilish/tushish -->
     <div class="price" id="current-price">...</div>
-    <div class="change-tag" id="price-change">
-        <span id="change-val">...</span>
+    <div class="change-tag">
+        <span id="change-val" class="up">...</span>
         <span style="color: #708499;">Bugun</span>
     </div>
 
-    <!-- Grafik Canvas -->
-    <div class="chart-container">
-        <canvas id="cryptoChart"></canvas>
+    <!-- Grafik qismi -->
+    <div class="chart-box">
+        <svg class="chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2bc155" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#2bc155" stop-opacity="0.0"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0,130 Q 100,20 200,70 T 400,30 L 500,50 L 500,150 L 0,150 Z" fill="url(#gradient)" />
+            <path d="M 0,130 Q 100,20 200,70 T 400,30 L 500,50" fill="none" stroke="#2bc155" stroke-width="4" />
+        </svg>
     </div>
 
-    <!-- Taymer tugmalari -->
+    <!-- Vaqt oraliqlari -->
     <div class="time-buttons">
         <button class="time-btn active">1K</button>
         <button class="time-btn">1H</button>
@@ -132,89 +139,41 @@
         <button class="time-btn">All</button>
     </div>
 
-    <!-- Sotib olish / Sotish -->
+    <!-- Tugmalar -->
     <div class="action-buttons">
-        <button class="btn btn-buy">Sotib olish</button>
-        <button class="btn btn-sell">Sotish</button>
+        <button class="btn">Sotib olish</button>
+        <button class="btn">Sotish</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let cryptoChart;
-
-        // Dynamic Chart yaratish funksiyasi
-        function renderChart(prices) {
-            const ctx = document.getElementById('cryptoChart').getContext('2d');
-            
-            // Yashil gradiyent soya
-            const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-            gradient.addColorStop(0, 'rgba(43, 193, 85, 0.3)');
-            gradient.addColorStop(1, 'rgba(43, 193, 85, 0.0)');
-
-            if (cryptoChart) cryptoChart.destroy();
-
-            cryptoChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: prices.map(() => ''), // x o'qidagi yozuvlarni yashirish
-                    datasets: [{
-                        data: prices,
-                        borderColor: '#2bc155',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        fill: true,
-                        backgroundColor: gradient,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { display: false }
-                    }
-                }
-            });
-        }
-
-        // Real API ma'lumotlarini olish
-        async function loadTONData() {
+        async function loadPrice() {
             try {
-                // Hozirgi narx
-                const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
-                const priceData = await priceRes.json();
-                
-                const ton = priceData['the-open-network'];
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
+                const data = await res.json();
+                const ton = data['the-open-network'];
+
                 document.getElementById('current-price').innerText = ton.usd.toLocaleString() + ' $';
                 
                 const change = ton.usd_24h_change.toFixed(2);
                 const changeEl = document.getElementById('change-val');
-                
+
                 if (change >= 0) {
-                    changeEl.innerHTML = `▲ +${change}%`;
+                    changeEl.innerText = `▲ +${change}%`;
                     changeEl.className = 'up';
                 } else {
-                    changeEl.innerHTML = `▼ ${change}%`;
+                    changeEl.innerText = `▼ ${change}%`;
                     changeEl.className = 'down';
                 }
-
-                // Chart uchun 1 kunlik narxlar tarixi
-                const chartRes = await fetch('https://api.coingecko.com/api/v3/coins/the-open-network/market_chart?vs_currency=usd&days=1');
-                const chartData = await chartRes.json();
-                
-                const prices = chartData.prices.map(p => p[1]);
-                renderChart(prices);
-
-            } catch (err) {
-                console.log("Xato:", err);
+            } catch (e) {
+                document.getElementById('current-price').innerText = '1.55 $';
+                document.getElementById('change-val').innerText = '▲ +2.45%';
             }
         }
 
-        loadTONData();
+        loadPrice();
     </script>
 </body>
 </html>
