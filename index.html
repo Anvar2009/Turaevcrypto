@@ -6,159 +6,215 @@
     <title>TURAE CRYPTO</title>
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Grafik uchun Chart.js kutubxonasi -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121922;
             color: #ffffff;
-            text-align: center;
-            padding: 15px;
             margin: 0;
+            padding: 16px;
         }
-        .card {
-            background: #1e1e1e;
-            padding: 15px;
-            border-radius: 12px;
-            margin-top: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
         }
-        .crypto-list {
-            margin-top: 20px;
+        .coin-icon {
+            width: 44px;
+            height: 44px;
+            background: #248bfa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
         }
-        .crypto-box {
-            background: #2a2a2a;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: 0.3s;
+        .coin-title {
+            font-size: 18px;
+            font-weight: 600;
         }
-        .crypto-box:active {
-            background: #333333;
+        .price {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 4px 0;
         }
-        .crypto-item {
+        .change-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .up { color: #2bc155; }
+        .down { color: #ff5959; }
+
+        /* Grafik joyi */
+        .chart-container {
+            position: relative;
+            height: 180px;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        /* Taymer/Period tugmalari */
+        .time-buttons {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 15px;
+            background: #1c2733;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
-        .crypto-name {
-            font-weight: bold;
+        .time-btn {
+            background: transparent;
+            border: none;
+            color: #708499;
+            padding: 8px 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .time-btn.active {
+            background: #2b394a;
+            color: #ffffff;
+        }
+
+        /* Tugmalar */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
             font-size: 16px;
+            color: #fff;
+            cursor: pointer;
         }
-        .crypto-price {
-            font-weight: bold;
-            font-size: 16px;
-        }
-        /* Bosilganda ochiladigan qism */
-        .crypto-details {
-            display: none; /* Boshida yashirin turadi */
-            background: #1e1e1e;
-            padding: 10px 15px;
-            font-size: 14px;
-            text-align: left;
-            border-top: 1px solid #333;
-        }
-        .up { color: #00ff88; } /* Ko'tarilsa yashil */
-        .down { color: #ff4d4d; } /* Tushsa qizil */
+        .btn-buy { background: #248bfa; }
+        .btn-sell { background: #248bfa; }
     </style>
 </head>
 <body>
 
-    <h2>⚡️ TURAE CRYPTO</h2>
-    
-    <div class="card">
-        <p id="user-info">Yuklanmoqda...</p>
+    <div class="header">
+        <div class="coin-icon">💎</div>
+        <div>
+            <div class="coin-title">Toncoin (TON)</div>
+        </div>
     </div>
 
-    <div class="crypto-list">
-        <h3>📊 Bozor narxlari (Bosing 👇)</h3>
-        
-        <!-- TON -->
-        <div class="crypto-box" onclick="toggleDetails('ton-details')">
-            <div class="crypto-item">
-                <span class="crypto-name">💎 TON</span>
-                <span class="crypto-price" id="ton-price">...</span>
-            </div>
-            <div class="crypto-details" id="ton-details">
-                24 soatlik o'zgarish: <span id="ton-change">...</span>
-            </div>
-        </div>
-        
-        <!-- BTC -->
-        <div class="crypto-box" onclick="toggleDetails('btc-details')">
-            <div class="crypto-item">
-                <span class="crypto-name">🟧 BTC</span>
-                <span class="crypto-price" id="btc-price">...</span>
-            </div>
-            <div class="crypto-details" id="btc-details">
-                24 soatlik o'zgarish: <span id="btc-change">...</span>
-            </div>
-        </div>
-        
-        <!-- ETH -->
-        <div class="crypto-box" onclick="toggleDetails('eth-details')">
-            <div class="crypto-item">
-                <span class="crypto-name">🔷 ETH</span>
-                <span class="crypto-price" id="eth-price">...</span>
-            </div>
-            <div class="crypto-details" id="eth-details">
-                24 soatlik o'zgarish: <span id="eth-change">...</span>
-            </div>
-        </div>
+    <!-- Narx va foiz -->
+    <div class="price" id="current-price">...</div>
+    <div class="change-tag" id="price-change">
+        <span id="change-val">...</span>
+        <span style="color: #708499;">Bugun</span>
+    </div>
+
+    <!-- Grafik Canvas -->
+    <div class="chart-container">
+        <canvas id="cryptoChart"></canvas>
+    </div>
+
+    <!-- Taymer tugmalari -->
+    <div class="time-buttons">
+        <button class="time-btn active">1K</button>
+        <button class="time-btn">1H</button>
+        <button class="time-btn">1 Oy</button>
+        <button class="time-btn">1Y</button>
+        <button class="time-btn">All</button>
+    </div>
+
+    <!-- Sotib olish / Sotish -->
+    <div class="action-buttons">
+        <button class="btn btn-buy">Sotib olish</button>
+        <button class="btn btn-sell">Sotish</button>
     </div>
 
     <script>
-        // Telegram foydalanuvchisi
         const tg = window.Telegram.WebApp;
         tg.expand();
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('user-info').innerText = "Salom, " + tg.initDataUnsafe.user.first_name + "! 👋";
+
+        let cryptoChart;
+
+        // Dynamic Chart yaratish funksiyasi
+        function renderChart(prices) {
+            const ctx = document.getElementById('cryptoChart').getContext('2d');
+            
+            // Yashil gradiyent soya
+            const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+            gradient.addColorStop(0, 'rgba(43, 193, 85, 0.3)');
+            gradient.addColorStop(1, 'rgba(43, 193, 85, 0.0)');
+
+            if (cryptoChart) cryptoChart.destroy();
+
+            cryptoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: prices.map(() => ''), // x o'qidagi yozuvlarni yashirish
+                    datasets: [{
+                        data: prices,
+                        borderColor: '#2bc155',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        backgroundColor: gradient,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
         }
 
-        // Bosilganda ma'lumotni ochib-yopuvchi funksiya
-        function toggleDetails(id) {
-            const el = document.getElementById(id);
-            if (el.style.display === "block") {
-                el.style.display = "none";
-            } else {
-                el.style.display = "block";
-            }
-        }
-
-        // API dan narx va 24s o'zgarishni olish
-        async function fetchPrices() {
+        // Real API ma'lumotlarini olish
+        async function loadTONData() {
             try {
-                // include_24hr_change=true qo'shildi
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
-                const data = await res.json();
+                // Hozirgi narx
+                const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
+                const priceData = await priceRes.json();
+                
+                const ton = priceData['the-open-network'];
+                document.getElementById('current-price').innerText = ton.usd.toLocaleString() + ' $';
+                
+                const change = ton.usd_24h_change.toFixed(2);
+                const changeEl = document.getElementById('change-val');
+                
+                if (change >= 0) {
+                    changeEl.innerHTML = `▲ +${change}%`;
+                    changeEl.className = 'up';
+                } else {
+                    changeEl.innerHTML = `▼ ${change}%`;
+                    changeEl.className = 'down';
+                }
 
-                updateCryptoUI('ton', data['the-open-network']);
-                updateCryptoUI('btc', data['bitcoin']);
-                updateCryptoUI('eth', data['ethereum']);
+                // Chart uchun 1 kunlik narxlar tarixi
+                const chartRes = await fetch('https://api.coingecko.com/api/v3/coins/the-open-network/market_chart?vs_currency=usd&days=1');
+                const chartData = await chartRes.json();
+                
+                const prices = chartData.prices.map(p => p[1]);
+                renderChart(prices);
+
             } catch (err) {
                 console.log("Xato:", err);
             }
         }
 
-        function updateCryptoUI(id, coinData) {
-            // Narxni yozish
-            document.getElementById(`${id}-price`).innerText = '$' + coinData.usd.toLocaleString();
-            
-            // O'zgarishni yozish
-            const changeSpan = document.getElementById(`${id}-change`);
-            const changeValue = coinData.usd_24h_change.toFixed(2); // verguldan keyin 2 ta raqam
-            
-            if (changeValue > 0) {
-                changeSpan.innerText = '📈 +' + changeValue + '%';
-                changeSpan.className = 'up';
-            } else {
-                changeSpan.innerText = '📉 ' + changeValue + '%';
-                changeSpan.className = 'down';
-            }
-        }
-
-        fetchPrices();
+        loadTONData();
     </script>
 </body>
 </html>
