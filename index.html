@@ -1,179 +1,169 @@
-<!<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TURAE CRYPTO</title>
-    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #121922;
-            color: #ffffff;
-            margin: 0;
-            padding: 16px;
-        }
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-        .coin-icon {
-            width: 44px;
-            height: 44px;
-            background: #248bfa;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-        }
-        .coin-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .price {
-            font-size: 32px;
-            font-weight: 700;
-            margin: 4px 0;
-        }
-        .change-tag {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #121922; color: #ffffff; margin: 0; padding: 16px; text-align: center; }
+        
+        /* Ekranlar uchun stil */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Welcome & Auth Screen */
+        .welcome-box { margin-top: 60px; }
+        .logo-icon { font-size: 60px; margin-bottom: 20px; }
+        .input-field { width: 100%; padding: 12px; margin: 8px 0; background: #1c2733; border: 1px solid #2b394a; border-radius: 10px; color: #fff; font-size: 15px; text-align: center; }
+        
+        /* Dashboard */
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .coin-icon { width: 40px; height: 40px; background: #248bfa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .price { font-size: 32px; font-weight: 700; margin: 5px 0; text-align: left; }
+        .change-tag { font-size: 14px; font-weight: 500; text-align: left; margin-bottom: 15px; }
         .up { color: #2bc155; }
         .down { color: #ff5959; }
 
-        /* Vektorlik chiziqli grafik (SVG) */
-        .chart-box {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 15px;
-        }
-        .chart-svg {
-            width: 100%;
-            height: 100%;
-        }
+        /* Chart */
+        .chart-box { width: 100%; height: 140px; margin-bottom: 15px; }
+        .chart-svg { width: 100%; height: 100%; }
 
-        /* Taymer tugmalari */
-        .time-buttons {
-            display: flex;
-            justify-content: space-between;
-            background: #1c2733;
-            padding: 4px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .time-btn {
-            background: transparent;
-            border: none;
-            color: #708499;
-            padding: 8px 12px;
-            font-weight: 600;
-            border-radius: 8px;
-            font-size: 13px;
-        }
-        .time-btn.active {
-            background: #2b394a;
-            color: #ffffff;
-        }
+        /* Timers */
+        .time-buttons { display: flex; justify-content: space-between; background: #1c2733; padding: 4px; border-radius: 10px; margin-bottom: 20px; }
+        .time-btn { background: transparent; border: none; color: #708499; padding: 8px 12px; font-weight: 600; border-radius: 8px; font-size: 13px; cursor: pointer; }
+        .time-btn.active { background: #2b394a; color: #ffffff; }
 
-        /* Sotib olish / Sotish tugmalari */
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        .btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            color: #fff;
-            background: #248bfa;
-            cursor: pointer;
-        }
+        /* Buttons */
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 600; font-size: 16px; color: #fff; background: #248bfa; cursor: pointer; margin-top: 10px; }
+        .action-buttons { display: flex; gap: 10px; }
+        .btn-sell { background: #e53935; }
+
+        /* Modal (Trade Window) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        .modal-content { background: #1c2733; padding: 20px; border-radius: 15px; width: 85%; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="coin-icon">💎</div>
-        <div class="coin-title">Toncoin (TON)</div>
+    <!-- 1. WELCOME EKRANI -->
+    <div id="welcome-screen" class="screen active">
+        <div class="welcome-box">
+            <div class="logo-icon">💎</div>
+            <h2>TURAE CRYPTO</h2>
+            <p style="color: #708499;">Xush kelibsiz! Kriptovalyuta olamiga ilk qadamni qo'ying.</p>
+            <button class="btn" onclick="showScreen('auth-screen')">Boshlash</button>
+        </div>
     </div>
 
-    <!-- Narx va ko'tarilish/tushish -->
-    <div class="price" id="current-price">...</div>
-    <div class="change-tag">
-        <span id="change-val" class="up">...</span>
-        <span style="color: #708499;">Bugun</span>
+    <!-- 2. AKKAUNT OCHISH / KIRISH EKRANI -->
+    <div id="auth-screen" class="screen">
+        <div class="welcome-box">
+            <h3 id="auth-title">Akkaunt Ochish</h3>
+            <input type="text" id="username" class="input-field" placeholder="Login kiriting">
+            <input type="password" id="password" class="input-field" placeholder="Parol kiriting">
+            <button class="btn" onclick="loginUser()">Kirish / Ro'yxatdan o'tish</button>
+        </div>
     </div>
 
-    <!-- Grafik qismi -->
-    <div class="chart-box">
-        <svg class="chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
-            <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#2bc155" stop-opacity="0.4"/>
-                    <stop offset="100%" stop-color="#2bc155" stop-opacity="0.0"/>
-                </linearGradient>
-            </defs>
-            <path d="M 0,130 Q 100,20 200,70 T 400,30 L 500,50 L 500,150 L 0,150 Z" fill="url(#gradient)" />
-            <path d="M 0,130 Q 100,20 200,70 T 400,30 L 500,50" fill="none" stroke="#2bc155" stroke-width="4" />
-        </svg>
+    <!-- 3. ASOSIY DASHBOARD -->
+    <div id="main-screen" class="screen">
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="coin-icon">💎</div>
+                <strong style="font-size: 18px;">Toncoin (TON)</strong>
+            </div>
+            <span id="user-display" style="font-size: 12px; color: #248bfa;"></span>
+        </div>
+
+        <div class="price" id="current-price">1.53 $</div>
+        <div class="change-tag" id="change-tag">
+            <span id="change-val" class="up">▲ +6.01%</span> <span style="color: #708499;" id="period-text">Bugun</span>
+        </div>
+
+        <!-- Dynamic SVG Chart -->
+        <div class="chart-box">
+            <svg class="chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2bc155" stop-opacity="0.4"/>
+                        <stop offset="100%" stop-color="#2bc155" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path id="chart-path-bg" d="M 0,100 Q 150,20 250,80 T 500,30 L 500,150 L 0,150 Z" fill="url(#gradient)" />
+                <path id="chart-path" d="M 0,100 Q 150,20 250,80 T 500,30" fill="none" stroke="#2bc155" stroke-width="4" />
+            </svg>
+        </div>
+
+        <!-- Period buttons (Ishlaydigan) -->
+        <div class="time-buttons">
+            <button class="time-btn active" onclick="setPeriod(this, '1K', 'M 0,100 Q 150,20 250,80 T 500,30', '+6.01%')">1K</button>
+            <button class="time-btn" onclick="setPeriod(this, '1H', 'M 0,50 Q 100,120 300,40 T 500,90', '+1.20%')">1H</button>
+            <button class="time-btn" onclick="setPeriod(this, '1 Oy', 'M 0,130 Q 200,10 350,110 T 500,20', '+18.4%')">1 Oy</button>
+            <button class="time-btn" onclick="setPeriod(this, '1Y', 'M 0,20 Q 150,140 300,50 T 500,10', '+142%')">1Y</button>
+            <button class="time-btn" onclick="setPeriod(this, 'All', 'M 0,140 Q 100,80 250,20 T 500,50', '+320%')">All</button>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-buttons">
+            <button class="btn" onclick="openModal('Sotib olish')">Sotib olish</button>
+            <button class="btn btn-sell" onclick="openModal('Sotish')">Sotish</button>
+        </div>
     </div>
 
-    <!-- Vaqt oraliqlari -->
-    <div class="time-buttons">
-        <button class="time-btn active">1K</button>
-        <button class="time-btn">1H</button>
-        <button class="time-btn">1 Oy</button>
-        <button class="time-btn">1Y</button>
-        <button class="time-btn">All</button>
-    </div>
-
-    <!-- Tugmalar -->
-    <div class="action-buttons">
-        <button class="btn">Sotib olish</button>
-        <button class="btn">Sotish</button>
+    <!-- MODAL (Xarid/Sotish oynasi) -->
+    <div id="trade-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Operatsiya</h3>
+            <input type="number" id="trade-amount" class="input-field" placeholder="Miqdori (TON)">
+            <button class="btn" onclick="confirmTrade()">Tasdiqlash</button>
+            <button class="btn" style="background: #555; margin-top: 5px;" onclick="closeModal()">Yopish</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        async function loadPrice() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
-                const data = await res.json();
-                const ton = data['the-open-network'];
-
-                document.getElementById('current-price').innerText = ton.usd.toLocaleString() + ' $';
-                
-                const change = ton.usd_24h_change.toFixed(2);
-                const changeEl = document.getElementById('change-val');
-
-                if (change >= 0) {
-                    changeEl.innerText = `▲ +${change}%`;
-                    changeEl.className = 'up';
-                } else {
-                    changeEl.innerText = `▼ ${change}%`;
-                    changeEl.className = 'down';
-                }
-            } catch (e) {
-                document.getElementById('current-price').innerText = '1.55 $';
-                document.getElementById('change-val').innerText = '▲ +2.45%';
-            }
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
         }
 
-        loadPrice();
+        function loginUser() {
+            const user = document.getElementById('username').value;
+            if(!user) { alert("Iltimos, login kiriting!"); return; }
+            document.getElementById('user-display').innerText = "👤 " + user;
+            showScreen('main-screen');
+        }
+
+        function setPeriod(element, text, pathD, change) {
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('period-text').innerText = text;
+            document.getElementById('change-val').innerText = '▲ ' + change;
+            
+            // Grafik chizig'ini almashtirish
+            document.getElementById('chart-path').setAttribute('d', pathD);
+            document.getElementById('chart-path-bg').setAttribute('d', pathD + ' L 500,150 L 0,150 Z');
+        }
+
+        function openModal(type) {
+            document.getElementById('modal-title').innerText = "TON " + type;
+            document.getElementById('trade-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('trade-modal').style.display = 'none';
+        }
+
+        function confirmTrade() {
+            const amount = document.getElementById('trade-amount').value;
+            if(!amount) { alert("Miqdorni kiriting!"); return; }
+            alert("Muvaffaqiyatli bajarildi: " + amount + " TON");
+            closeModal();
+        }
     </script>
 </body>
 </html>
