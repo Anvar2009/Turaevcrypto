@@ -5,38 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TURAE CRYPTO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Firebase SDK (Haqiqiy backend server) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #121922; color: #ffffff; margin: 0; padding: 16px; text-align: center; }
-        
         .screen { display: none; }
         .screen.active { display: block; }
-
-        .logo-icon { font-size: 50px; margin-bottom: 10px; }
-        .input-field { width: 100%; padding: 12px; margin: 6px 0; background: #1c2733; border: 1px solid #2b394a; border-radius: 10px; color: #fff; font-size: 14px; }
-        
+        .input-field { width: 100%; padding: 12px; margin: 6px 0; background: #1c2733; border: 1px solid #2b394a; border-radius: 10px; color: #fff; }
         .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; color: #fff; background: #248bfa; cursor: pointer; margin-top: 8px; }
         .btn-outline { background: transparent; border: 1px solid #248bfa; color: #248bfa; }
         .btn-green { background: #2bc155; }
-        .btn-danger { background: #e53935; }
-
-        /* Wallet Header */
+        .btn-send { background: #ff9800; }
+        .user-status-card { background: #1c2733; border: 1px solid #248bfa; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; text-align: left; }
         .wallet-card { background: #1c2733; padding: 15px; border-radius: 15px; text-align: left; margin-bottom: 15px; }
-        .balance-title { color: #708499; font-size: 13px; }
-        .balance-val { font-size: 28px; font-weight: 700; margin: 5px 0; }
-
-        /* Crypto List */
-        .crypto-item { display: flex; justify-content: space-between; align-items: center; background: #1c2733; padding: 12px; border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
-        .crypto-item:active { background: #2b394a; }
-
-        /* Chart Modal */
-        .chart-box { width: 100%; height: 130px; margin: 15px 0; }
-        .chart-svg { width: 100%; height: 100%; }
-
-        .time-buttons { display: flex; justify-content: space-between; background: #1c2733; padding: 4px; border-radius: 10px; margin-bottom: 15px; }
-        .time-btn { background: transparent; border: none; color: #708499; padding: 6px 10px; font-weight: 600; border-radius: 8px; font-size: 12px; cursor: pointer; }
-        .time-btn.active { background: #2b394a; color: #ffffff; }
-
+        .crypto-item { display: flex; justify-content: space-between; align-items: center; background: #1c2733; padding: 12px; border-radius: 12px; margin-bottom: 8px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: #1c2733; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; text-align: left; }
     </style>
@@ -46,9 +32,9 @@
     <!-- 1. BOSHILASH EKRANI -->
     <div id="welcome-screen" class="screen active">
         <div style="margin-top: 50px;">
-            <div class="logo-icon">💎</div>
+            <div style="font-size: 50px;">💎</div>
             <h2>TURAE CRYPTO</h2>
-            <p style="color: #708499;">Xush kelibsiz! Kripto hamyoningizga kiring.</p>
+            <p style="color: #708499;">Xush kelibsiz!</p>
             <button class="btn" onclick="showScreen('login-screen')">Kirish</button>
             <button class="btn btn-outline" onclick="showScreen('register-screen')">Ro'yxatdan o'tish</button>
         </div>
@@ -57,202 +43,210 @@
     <!-- 2. KIRISH EKRANI -->
     <div id="login-screen" class="screen">
         <h3>Tizimga Kirish</h3>
-        <input type="text" id="login-email" class="input-field" placeholder="Gmail">
+        <input type="email" id="login-email" class="input-field" placeholder="Gmail">
         <input type="password" id="login-pass" class="input-field" placeholder="Parol">
         <button class="btn" onclick="handleLogin()">Kirish</button>
         <button class="btn btn-outline" onclick="showScreen('welcome-screen')">Orqaga</button>
     </div>
 
-    <!-- 3. RO'YXATDAN O'TISH EKRANI -->
+    <!-- 3. RO'YXATDAN O'TISH -->
     <div id="register-screen" class="screen">
         <h3>Ro'yxatdan o'tish</h3>
         <input type="text" id="reg-name" class="input-field" placeholder="Ismingiz">
         <input type="email" id="reg-email" class="input-field" placeholder="Gmail manzilingiz">
         <input type="password" id="reg-pass" class="input-field" placeholder="Parol">
-        <input type="password" id="reg-pass2" class="input-field" placeholder="Parolni takrorlang">
         <button class="btn btn-green" onclick="handleRegister()">Hisob yaratish</button>
         <button class="btn btn-outline" onclick="showScreen('welcome-screen')">Orqaga</button>
     </div>
 
-    <!-- 4. ASOSIY HAMYON DASHBOARD -->
+    <!-- 4. FOYDALANUVCHI DASHBOARD -->
     <div id="main-screen" class="screen">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span id="user-greeting" style="font-weight: 600; color: #248bfa;"></span>
-            <button onclick="logout()" style="background: none; border: none; color: #e53935; font-size: 12px;">Chiqish 🚪</button>
+        <div class="user-status-card">
+            <div>
+                <div id="active-user-name" style="font-weight: 700; font-size: 15px;">--</div>
+                <div id="active-user-email" style="font-size: 11px; color: #708499;">--</div>
+            </div>
+            <button onclick="logout()" style="background: #2b394a; border: none; color: #e53935; padding: 6px 10px; border-radius: 8px; font-size: 11px; cursor: pointer;">Chiqish 🚪</button>
         </div>
 
         <div class="wallet-card">
-            <div class="balance-title">Umumiy Balans</div>
-            <div class="balance-val" id="total-balance">0.00 $</div>
-            <button class="btn btn-green" style="padding: 8px; font-size: 13px;" onclick="openDepositModal()">+ Pul Kiritish (Deposit)</button>
+            <div style="color: #708499; font-size: 13px;">Balans (Admin to'ldiradi)</div>
+            <div style="font-size: 28px; font-weight: 700; margin: 5px 0;" id="total-balance">0.00 $</div>
+            <button class="btn btn-send" style="padding: 10px; font-size: 13px;" onclick="openTransferModal()">↗ Boshqa odamga pul o'tkazish</button>
         </div>
 
         <h4 style="text-align: left; margin: 15px 0 10px 0; color: #708499;">Kriptovalyutalar</h4>
+        <div class="crypto-item"><div>💎 Toncoin</div><div>1.53 $</div></div>
+        <div class="crypto-item"><div>🟧 Bitcoin</div><div>65,900 $</div></div>
+        <div class="crypto-item"><div>🔷 Ethereum</div><div>2,640 $</div></div>
+    </div>
 
-        <!-- TON -->
-        <div class="crypto-item" onclick="openCoinModal('TON', '1.53', '▲ +6.01%')">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 24px;">💎</div>
-                <div style="text-align: left;">
-                    <div style="font-weight: 600;">Toncoin</div>
-                    <div style="font-size: 12px; color: #2bc155;">▲ +6.01%</div>
-                </div>
+    <!-- 5. ADMIN PANEL -->
+    <div id="admin-screen" class="screen">
+        <div class="user-status-card" style="border-color: #e53935;">
+            <div>
+                <div style="font-weight: 700; color: #e53935;">👑 ASOSIY ADMIN PANEL</div>
+                <div style="font-size: 11px; color: #708499;">Server Boshqaruvi</div>
             </div>
-            <div style="font-weight: 700;">1.53 $</div>
+            <button onclick="logout()" style="background: #2b394a; border: none; color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 11px;">Chiqish 🚪</button>
         </div>
 
-        <!-- BTC -->
-        <div class="crypto-item" onclick="openCoinModal('BTC', '65900', '▲ +2.15%')">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 24px;">🟧</div>
-                <div style="text-align: left;">
-                    <div style="font-weight: 600;">Bitcoin</div>
-                    <div style="font-size: 12px; color: #2bc155;">▲ +2.15%</div>
-                </div>
-            </div>
-            <div style="font-weight: 700;">65,900 $</div>
-        </div>
-
-        <!-- ETH -->
-        <div class="crypto-item" onclick="openCoinModal('ETH', '2640', '▼ -1.10%')">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 24px;">🔷</div>
-                <div style="text-align: left;">
-                    <div style="font-weight: 600;">Ethereum</div>
-                    <div style="font-size: 12px; color: #e53935;">▼ -1.10%</div>
-                </div>
-            </div>
-            <div style="font-weight: 700;">2,640 $</div>
+        <div class="wallet-card">
+            <h3>Foydalanuvchiga Pul Tashlash</h3>
+            <p style="font-size: 12px; color: #708499;">Pul o'tkazmoqchi bo'lgan foydalanuvchi Gmailini kiriting</p>
+            <input type="email" id="admin-target-email" class="input-field" placeholder="Foydalanuvchi Gmail">
+            <input type="number" id="admin-amount" class="input-field" placeholder="Summa ($)">
+            <button class="btn btn-green" onclick="adminAddMoney()">Pulni hisobga tushirish ➕</button>
         </div>
     </div>
 
-    <!-- 5. TANGA DIAGRAMMA MODALI -->
-    <div id="coin-modal" class="modal">
+    <!-- O'TKAZMA MODALI -->
+    <div id="transfer-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-coin-title">Tanga</h3>
-            <div id="modal-coin-price" style="font-size: 24px; font-weight: 700;">-- $</div>
-            <div id="modal-coin-change" style="font-size: 13px; margin-bottom: 10px;">--</div>
-
-            <div class="chart-box">
-                <svg class="chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
-                    <path id="modal-chart-path" d="M 0,100 Q 150,20 250,80 T 500,30" fill="none" stroke="#2bc155" stroke-width="4" />
-                </svg>
-            </div>
-
-            <div class="time-buttons">
-                <button class="time-btn active" onclick="changeChart('1K', 'M 0,100 Q 150,20 250,80 T 500,30')">1K</button>
-                <button class="time-btn" onclick="changeChart('1H', 'M 0,40 Q 100,120 300,50 T 500,100')">1H</button>
-                <button class="time-btn" onclick="changeChart('1 Oy', 'M 0,130 Q 200,10 350,110 T 500,20')">1 Oy</button>
-                <button class="time-btn" onclick="changeChart('1Y', 'M 0,20 Q 150,140 300,50 T 500,10')">1Y</button>
-            </div>
-
-            <button class="btn btn-outline" onclick="closeModal('coin-modal')">Yopish</button>
-        </div>
-    </div>
-
-    <!-- 6. DEPOSIT (PUL KIRITISH) MODALI -->
-    <div id="deposit-modal" class="modal">
-        <div class="modal-content">
-            <h3>Hamyonga Pul Tashlash</h3>
-            <p style="font-size: 12px; color: #708499;">Masalan: 1$ yoki xohlagan summa kiriting</p>
-            <input type="number" id="deposit-amount" class="input-field" placeholder="Summa kiritng ($)">
-            <button class="btn btn-green" onclick="processDeposit()">Pulni Hisobga Tushirish</button>
-            <button class="btn btn-outline" onclick="closeModal('deposit-modal')">Yopish</button>
+            <h3>Pul O'tkazmasi</h3>
+            <input type="email" id="transfer-email" class="input-field" placeholder="Qabul qiluvchi Gmail">
+            <input type="number" id="transfer-amount" class="input-field" placeholder="Summa ($)">
+            <button class="btn btn-send" onclick="processTransfer()">Jo'natish</button>
+            <button class="btn btn-outline" onclick="closeModal('transfer-modal')">Yopish</button>
         </div>
     </div>
 
     <script>
+        // FIREBASE SOZLAMALARI (O'zingizning firebaseConfig kodingizni qo'ying)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        // Tizimni tekshirish (Localstorage)
-        window.onload = function() {
-            const activeUser = JSON.parse(localStorage.getItem('currentUser'));
-            if(activeUser) {
-                initDashboard(activeUser);
-            }
-        };
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
         }
 
-        // Ro'yxatdan o'tish
-        function handleRegister() {
-            const name = document.getElementById('reg-name').value;
-            const email = document.getElementById('reg-email').value;
+        // SERVERGA RO'YXATDAN O'TKAZISH
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
             const pass = document.getElementById('reg-pass').value;
-            const pass2 = document.getElementById('reg-pass2').value;
 
             if(!name || !email || !pass) { alert("Barcha maydonlarni to'ldiring!"); return; }
-            if(pass !== pass2) { alert("Parollar mos kelmadi!"); return; }
 
-            const userData = { name, email, pass, balance: 0.00 };
-            localStorage.setItem('user_' + email, JSON.stringify(userData));
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+            const userRef = db.collection('users').doc(email);
+            const doc = await userRef.get();
 
+            if (doc.exists) {
+                alert("Bunday Gmail allaqachon ro'yxatdan o'tgan!");
+                return;
+            }
+
+            const userData = { name, email, pass, balance: 0, role: 'user' };
+            await userRef.set(userData);
+
+            localStorage.setItem('currentUserEmail', email);
             alert("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
             initDashboard(userData);
         }
 
-        // Kirish
-        function handleLogin() {
-            const email = document.getElementById('login-email').value;
+        // SERVERDAN LOGIN QILISH
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
             const pass = document.getElementById('login-pass').value;
 
-            const savedUser = JSON.parse(localStorage.getItem('user_' + email));
+            const userRef = db.collection('users').doc(email);
+            const doc = await userRef.get();
 
-            if(savedUser && savedUser.pass === pass) {
-                localStorage.setItem('currentUser', JSON.stringify(savedUser));
-                initDashboard(savedUser);
+            if (!doc.exists) {
+                alert("Bunday Gmail topilmadi!");
+                return;
+            }
+
+            const userData = doc.data();
+
+            if (userData.pass === pass) {
+                localStorage.setItem('currentUserEmail', email);
+                initDashboard(userData);
             } else {
-                alert("Gmail yoki parol noto'g'ri!");
+                alert("Parol noto'g'ri!");
             }
         }
 
         function initDashboard(user) {
-            document.getElementById('user-greeting').innerText = "👤 " + user.name;
-            document.getElementById('total-balance').innerText = user.balance.toFixed(2) + " $";
-            showScreen('main-screen');
+            if(user.role === 'admin') {
+                showScreen('admin-screen');
+            } else {
+                document.getElementById('active-user-name').innerText = user.name;
+                document.getElementById('active-user-email').innerText = user.email;
+                document.getElementById('total-balance').innerText = user.balance.toFixed(2) + " $";
+                showScreen('main-screen');
+            }
+        }
+
+        // ADMIN SERVERTAN PUL O'TKAZISHI
+        async function adminAddMoney() {
+            const targetEmail = document.getElementById('admin-target-email').value.trim().toLowerCase();
+            const amt = parseFloat(document.getElementById('admin-amount').value);
+
+            if(!targetEmail || !amt || amt <= 0) { alert("Ma'lumotlarni to'g'ri kiriting!"); return; }
+
+            const userRef = db.collection('users').doc(targetEmail);
+            const doc = await userRef.get();
+
+            if (!doc.exists) {
+                alert("Bunday foydalanuvchi serverda topilmadi!");
+                return;
+            }
+
+            await userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) });
+            alert(`${targetEmail} hisobiga ${amt}$ muvaffaqiyatli tushirildi!`);
+            document.getElementById('admin-target-email').value = '';
+            document.getElementById('admin-amount').value = '';
+        }
+
+        // FOYDALANUVCHILAR O'ZARO PUL O'TKAZMASI
+        async function processTransfer() {
+            const targetEmail = document.getElementById('transfer-email').value.trim().toLowerCase();
+            const amt = parseFloat(document.getElementById('transfer-amount').value);
+            const myEmail = localStorage.getItem('currentUserEmail');
+
+            if(!targetEmail || !amt || amt <= 0) { alert("Maydonlarni to'g'ri to'ldiring!"); return; }
+            if(targetEmail === myEmail) { alert("O'zingizga pul o'tkaza olmaysiz!"); return; }
+
+            const myRef = db.collection('users').doc(myEmail);
+            const targetRef = db.collection('users').doc(targetEmail);
+
+            const myDoc = await myRef.get();
+            const targetDoc = await targetRef.get();
+
+            if (!targetDoc.exists) { alert("Qabul qiluvchi Gmail serverda topilmadi!"); return; }
+
+            const myData = myDoc.data();
+            if (myData.balance < amt) { alert("Balansda mablag' yetarli emas!"); return; }
+
+            // Tranzaksiya
+            await myRef.update({ balance: firebase.firestore.FieldValue.increment(-amt) });
+            await targetRef.update({ balance: firebase.firestore.FieldValue.increment(amt) });
+
+            document.getElementById('total-balance').innerText = (myData.balance - amt).toFixed(2) + " $";
+            alert(`${amt}$ muvaffaqiyatli o'tkazildi!`);
+            closeModal('transfer-modal');
         }
 
         function logout() {
-            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUserEmail');
             showScreen('welcome-screen');
         }
 
-        // Deposit (Pul tashlash)
-        function openDepositModal() { document.getElementById('deposit-modal').style.display = 'flex'; }
-        
-        function processDeposit() {
-            const amt = parseFloat(document.getElementById('deposit-amount').value);
-            if(!amt || amt <= 0) { alert("Tog'ri summa kiriting!"); return; }
-
-            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            currentUser.balance += amt;
-
-            // Xotirani yangilash
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            localStorage.setItem('user_' + currentUser.email, JSON.stringify(currentUser));
-
-            document.getElementById('total-balance').innerText = currentUser.balance.toFixed(2) + " $";
-            alert(amt + "$ hamyoningizga tushdi!");
-            closeModal('deposit-modal');
-        }
-
-        // Modalni boshqarish
-        function openCoinModal(name, price, change) {
-            document.getElementById('modal-coin-title').innerText = name;
-            document.getElementById('modal-coin-price').innerText = price + " $";
-            document.getElementById('modal-coin-change').innerText = change;
-            document.getElementById('coin-modal').style.display = 'flex';
-        }
-
-        function changeChart(period, pathD) {
-            document.getElementById('modal-chart-path').setAttribute('d', pathD);
-        }
-
+        function openTransferModal() { document.getElementById('transfer-modal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
     </script>
 </body>
