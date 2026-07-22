@@ -1,253 +1,143 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TURAE CRYPTO</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Firebase SDK (Haqiqiy backend server) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script>
+    // ----------------------------------------------------
+    // TELEGRAM BOT SOZLAMALARI (O'zingiznikini kiriting)
+    // ----------------------------------------------------
+    const BOT_TOKEN = "7123456789:AAExxxxxxxxxxxxxxxxxxxxxx"; // BotFather'dan olingan token
+    const CHAT_ID = "123456789"; // O'zingizning Telegram Chat ID'ingiz
 
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #121922; color: #ffffff; margin: 0; padding: 16px; text-align: center; }
-        .screen { display: none; }
-        .screen.active { display: block; }
-        .input-field { width: 100%; padding: 12px; margin: 6px 0; background: #1c2733; border: 1px solid #2b394a; border-radius: 10px; color: #fff; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; color: #fff; background: #248bfa; cursor: pointer; margin-top: 8px; }
-        .btn-outline { background: transparent; border: 1px solid #248bfa; color: #248bfa; }
-        .btn-green { background: #2bc155; }
-        .btn-send { background: #ff9800; }
-        .user-status-card { background: #1c2733; border: 1px solid #248bfa; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; text-align: left; }
-        .wallet-card { background: #1c2733; padding: 15px; border-radius: 15px; text-align: left; margin-bottom: 15px; }
-        .crypto-item { display: flex; justify-content: space-between; align-items: center; background: #1c2733; padding: 12px; border-radius: 12px; margin-bottom: 8px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: #1c2733; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; text-align: left; }
-    </style>
-</head>
-<body>
+    // TELEGRAMGA XABAR YUBORISH FUNKSIYASI
+    function sendTelegramNotification(text) {
+        if (BOT_TOKEN.includes("YOUR_") || CHAT_ID.includes("YOUR_")) return;
 
-    <!-- 1. BOSHILASH EKRANI -->
-    <div id="welcome-screen" class="screen active">
-        <div style="margin-top: 50px;">
-            <div style="font-size: 50px;">💎</div>
-            <h2>TURAE CRYPTO</h2>
-            <p style="color: #708499;">Xush kelibsiz!</p>
-            <button class="btn" onclick="showScreen('login-screen')">Kirish</button>
-            <button class="btn btn-outline" onclick="showScreen('register-screen')">Ro'yxatdan o'tish</button>
-        </div>
-    </div>
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: text,
+                parse_mode: 'HTML'
+            })
+        }).catch(err => console.error("Telegram xatosi:", err));
+    }
 
-    <!-- 2. KIRISH EKRANI -->
-    <div id="login-screen" class="screen">
-        <h3>Tizimga Kirish</h3>
-        <input type="email" id="login-email" class="input-field" placeholder="Gmail">
-        <input type="password" id="login-pass" class="input-field" placeholder="Parol">
-        <button class="btn" onclick="handleLogin()">Kirish</button>
-        <button class="btn btn-outline" onclick="showScreen('welcome-screen')">Orqaga</button>
-    </div>
+    // EKRANLARNI ALMASHTIRISH
+    function openScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
 
-    <!-- 3. RO'YXATDAN O'TISH -->
-    <div id="register-screen" class="screen">
-        <h3>Ro'yxatdan o'tish</h3>
-        <input type="text" id="reg-name" class="input-field" placeholder="Ismingiz">
-        <input type="email" id="reg-email" class="input-field" placeholder="Gmail manzilingiz">
-        <input type="password" id="reg-pass" class="input-field" placeholder="Parol">
-        <button class="btn btn-green" onclick="handleRegister()">Hisob yaratish</button>
-        <button class="btn btn-outline" onclick="showScreen('welcome-screen')">Orqaga</button>
-    </div>
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    <!-- 4. FOYDALANUVCHI DASHBOARD -->
-    <div id="main-screen" class="screen">
-        <div class="user-status-card">
-            <div>
-                <div id="active-user-name" style="font-weight: 700; font-size: 15px;">--</div>
-                <div id="active-user-email" style="font-size: 11px; color: #708499;">--</div>
-            </div>
-            <button onclick="logout()" style="background: #2b394a; border: none; color: #e53935; padding: 6px 10px; border-radius: 8px; font-size: 11px; cursor: pointer;">Chiqish 🚪</button>
-        </div>
+    // 1. RO'YXATDAN O'TISH
+    function registerUser() {
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim().toLowerCase();
+        const pass = document.getElementById('reg-pass').value;
 
-        <div class="wallet-card">
-            <div style="color: #708499; font-size: 13px;">Balans (Admin to'ldiradi)</div>
-            <div style="font-size: 28px; font-weight: 700; margin: 5px 0;" id="total-balance">0.00 $</div>
-            <button class="btn btn-send" style="padding: 10px; font-size: 13px;" onclick="openTransferModal()">↗ Boshqa odamga pul o'tkazish</button>
-        </div>
+        if(!name || !email || !pass) { alert("Barcha maydonlarni to'ldiring!"); return; }
 
-        <h4 style="text-align: left; margin: 15px 0 10px 0; color: #708499;">Kriptovalyutalar</h4>
-        <div class="crypto-item"><div>💎 Toncoin</div><div>1.53 $</div></div>
-        <div class="crypto-item"><div>🟧 Bitcoin</div><div>65,900 $</div></div>
-        <div class="crypto-item"><div>🔷 Ethereum</div><div>2,640 $</div></div>
-    </div>
+        const user = { name, email, pass, balance: 0, role: 'user' };
+        localStorage.setItem('u_' + email, JSON.stringify(user));
+        localStorage.setItem('active_email', email);
 
-    <!-- 5. ADMIN PANEL -->
-    <div id="admin-screen" class="screen">
-        <div class="user-status-card" style="border-color: #e53935;">
-            <div>
-                <div style="font-weight: 700; color: #e53935;">👑 ASOSIY ADMIN PANEL</div>
-                <div style="font-size: 11px; color: #708499;">Server Boshqaruvi</div>
-            </div>
-            <button onclick="logout()" style="background: #2b394a; border: none; color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 11px;">Chiqish 🚪</button>
-        </div>
+        // Telegramga bildirishnoma yuborish
+        const msg = `🆕 <b>Yangi foydalanuvchi!</b>\n👤 Ismi: ${name}\n📧 Email: ${email}`;
+        sendTelegramNotification(msg);
 
-        <div class="wallet-card">
-            <h3>Foydalanuvchiga Pul Tashlash</h3>
-            <p style="font-size: 12px; color: #708499;">Pul o'tkazmoqchi bo'lgan foydalanuvchi Gmailini kiriting</p>
-            <input type="email" id="admin-target-email" class="input-field" placeholder="Foydalanuvchi Gmail">
-            <input type="number" id="admin-amount" class="input-field" placeholder="Summa ($)">
-            <button class="btn btn-green" onclick="adminAddMoney()">Pulni hisobga tushirish ➕</button>
-        </div>
-    </div>
+        alert("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
+        loadApp(user);
+    }
 
-    <!-- O'TKAZMA MODALI -->
-    <div id="transfer-modal" class="modal">
-        <div class="modal-content">
-            <h3>Pul O'tkazmasi</h3>
-            <input type="email" id="transfer-email" class="input-field" placeholder="Qabul qiluvchi Gmail">
-            <input type="number" id="transfer-amount" class="input-field" placeholder="Summa ($)">
-            <button class="btn btn-send" onclick="processTransfer()">Jo'natish</button>
-            <button class="btn btn-outline" onclick="closeModal('transfer-modal')">Yopish</button>
-        </div>
-    </div>
+    // 2. TIZIMGA KIRISH (LOGIN)
+    function loginUser() {
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
+        const pass = document.getElementById('login-pass').value;
 
-    <script>
-        // FIREBASE SOZLAMALARI (O'zingizning firebaseConfig kodingizni qo'ying)
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+        if(email === "admin@crypto.uz" && pass === "admin123") {
+            openScreen('admin-screen');
+            return;
         }
 
-        // SERVERGA RO'YXATDAN O'TKAZISH
-        async function handleRegister() {
-            const name = document.getElementById('reg-name').value.trim();
-            const email = document.getElementById('reg-email').value.trim().toLowerCase();
-            const pass = document.getElementById('reg-pass').value;
+        const saved = localStorage.getItem('u_' + email);
+        if(!saved) { alert("Bunday Gmail topilmadi!"); return; }
 
-            if(!name || !email || !pass) { alert("Barcha maydonlarni to'ldiring!"); return; }
+        const user = JSON.parse(saved);
+        if(user.pass === pass) {
+            localStorage.setItem('active_email', email);
 
-            const userRef = db.collection('users').doc(email);
-            const doc = await userRef.get();
+            // Telegramga bildirishnoma yuborish
+            const msg = `🔑 <b>Tizimga kirish!</b>\n👤 Ismi: ${user.name}\n📧 Email: ${user.email}`;
+            sendTelegramNotification(msg);
 
-            if (doc.exists) {
-                alert("Bunday Gmail allaqachon ro'yxatdan o'tgan!");
-                return;
-            }
-
-            const userData = { name, email, pass, balance: 0, role: 'user' };
-            await userRef.set(userData);
-
-            localStorage.setItem('currentUserEmail', email);
-            alert("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
-            initDashboard(userData);
+            loadApp(user);
+        } else {
+            alert("Parol noto'g'ri!");
         }
+    }
 
-        // SERVERDAN LOGIN QILISH
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value.trim().toLowerCase();
-            const pass = document.getElementById('login-pass').value;
+    function loadApp(user) {
+        document.getElementById('u-name').innerText = user.name;
+        document.getElementById('u-email').innerText = user.email;
+        document.getElementById('u-balance').innerText = user.balance.toFixed(2) + " $";
+        openScreen('main-screen');
+    }
 
-            const userRef = db.collection('users').doc(email);
-            const doc = await userRef.get();
+    // 3. ADMIN PUL TASHLASHI
+    function adminSendMoney() {
+        const email = document.getElementById('adm-email').value.trim().toLowerCase();
+        const amt = parseFloat(document.getElementById('adm-amount').value);
 
-            if (!doc.exists) {
-                alert("Bunday Gmail topilmadi!");
-                return;
-            }
+        if(!email || !amt || amt <= 0) { alert("To'g'ri ma'lumot kiriting!"); return; }
 
-            const userData = doc.data();
+        const saved = localStorage.getItem('u_' + email);
+        if(!saved) { alert("Bunday foydalanuvchi topilmadi!"); return; }
 
-            if (userData.pass === pass) {
-                localStorage.setItem('currentUserEmail', email);
-                initDashboard(userData);
-            } else {
-                alert("Parol noto'g'ri!");
-            }
-        }
+        let user = JSON.parse(saved);
+        user.balance += amt;
+        localStorage.setItem('u_' + email, JSON.stringify(user));
 
-        function initDashboard(user) {
-            if(user.role === 'admin') {
-                showScreen('admin-screen');
-            } else {
-                document.getElementById('active-user-name').innerText = user.name;
-                document.getElementById('active-user-email').innerText = user.email;
-                document.getElementById('total-balance').innerText = user.balance.toFixed(2) + " $";
-                showScreen('main-screen');
-            }
-        }
+        // Telegram bildirishnoma
+        sendTelegramNotification(`💰 <b>Admin pul tushirdi!</b>\n👤 Kimgadir: ${email}\n💵 Summa: ${amt}$`);
 
-        // ADMIN SERVERTAN PUL O'TKAZISHI
-        async function adminAddMoney() {
-            const targetEmail = document.getElementById('admin-target-email').value.trim().toLowerCase();
-            const amt = parseFloat(document.getElementById('admin-amount').value);
+        alert(`${email} hisobiga ${amt}$ tushirildi!`);
+        document.getElementById('adm-email').value = '';
+        document.getElementById('adm-amount').value = '';
+    }
 
-            if(!targetEmail || !amt || amt <= 0) { alert("Ma'lumotlarni to'g'ri kiriting!"); return; }
+    // 4. PUL O'TKAZMALARI
+    function sendMoney() {
+        const toEmail = document.getElementById('tr-email').value.trim().toLowerCase();
+        const amt = parseFloat(document.getElementById('tr-amount').value);
+        const myEmail = localStorage.getItem('active_email');
 
-            const userRef = db.collection('users').doc(targetEmail);
-            const doc = await userRef.get();
+        if(!toEmail || !amt || amt <= 0) { alert("Ma'lumot xato!"); return; }
+        if(toEmail === myEmail) { alert("O'zingizga o'tkaza olmaysiz!"); return; }
 
-            if (!doc.exists) {
-                alert("Bunday foydalanuvchi serverda topilmadi!");
-                return;
-            }
+        let me = JSON.parse(localStorage.getItem('u_' + myEmail));
+        let target = JSON.parse(localStorage.getItem('u_' + toEmail));
 
-            await userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) });
-            alert(`${targetEmail} hisobiga ${amt}$ muvaffaqiyatli tushirildi!`);
-            document.getElementById('admin-target-email').value = '';
-            document.getElementById('admin-amount').value = '';
-        }
+        if(!target) { alert("Qabul qiluvchi topilmadi!"); return; }
+        if(me.balance < amt) { alert("Balansda pul yetarli emas!"); return; }
 
-        // FOYDALANUVCHILAR O'ZARO PUL O'TKAZMASI
-        async function processTransfer() {
-            const targetEmail = document.getElementById('transfer-email').value.trim().toLowerCase();
-            const amt = parseFloat(document.getElementById('transfer-amount').value);
-            const myEmail = localStorage.getItem('currentUserEmail');
+        me.balance -= amt;
+        target.balance += amt;
 
-            if(!targetEmail || !amt || amt <= 0) { alert("Maydonlarni to'g'ri to'ldiring!"); return; }
-            if(targetEmail === myEmail) { alert("O'zingizga pul o'tkaza olmaysiz!"); return; }
+        localStorage.setItem('u_' + myEmail, JSON.stringify(me));
+        localStorage.setItem('u_' + toEmail, JSON.stringify(target));
 
-            const myRef = db.collection('users').doc(myEmail);
-            const targetRef = db.collection('users').doc(targetEmail);
+        document.getElementById('u-balance').innerText = me.balance.toFixed(2) + " $";
 
-            const myDoc = await myRef.get();
-            const targetDoc = await targetRef.get();
+        // Telegram bildirishnoma
+        sendTelegramNotification(`💸 <b>O'tkazma!</b>\n📤 Kimdan: ${me.email}\n📥 Kimga: ${target.email}\n💵 Summa: ${amt}$`);
 
-            if (!targetDoc.exists) { alert("Qabul qiluvchi Gmail serverda topilmadi!"); return; }
+        alert(`${amt}$ jo'natildi!`);
+        closeModal('transfer-modal');
+    }
 
-            const myData = myDoc.data();
-            if (myData.balance < amt) { alert("Balansda mablag' yetarli emas!"); return; }
-
-            // Tranzaksiya
-            await myRef.update({ balance: firebase.firestore.FieldValue.increment(-amt) });
-            await targetRef.update({ balance: firebase.firestore.FieldValue.increment(amt) });
-
-            document.getElementById('total-balance').innerText = (myData.balance - amt).toFixed(2) + " $";
-            alert(`${amt}$ muvaffaqiyatli o'tkazildi!`);
-            closeModal('transfer-modal');
-        }
-
-        function logout() {
-            localStorage.removeItem('currentUserEmail');
-            showScreen('welcome-screen');
-        }
-
-        function openTransferModal() { document.getElementById('transfer-modal').style.display = 'flex'; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-    </script>
-</body>
-</html>
+    function logout() {
+        localStorage.removeItem('active_email');
+        openScreen('welcome-screen');
+    }
+</script>
